@@ -1,0 +1,6 @@
+tunnel: 30f62dc6-c6b9-4e00-be8d-d508220712b4
+credentials-file: C:\Program Files (x86)\cloudflared
+ingress:
+  - hostname: your-domain.com
+    service: http://localhost:3000
+  - service: http_status:404 
