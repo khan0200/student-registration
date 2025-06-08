@@ -1,9 +1,13 @@
 @echo off
-cd %~dp0
-echo Starting Student Registration App...
-set HOST=0.0.0.0
-set PORT=3001
-echo Server will be available at:
-echo Local:        http://localhost:%PORT%
-echo Network:      http://%HOST%:%PORT%
-npm run dev -- -H %HOST% -p %PORT%
+echo Starting local server...
+
+:: Start the server (assuming it runs on port 3000)
+start /B npm run dev
+
+:: Wait a few seconds for the server to start
+timeout /t 2 /nobreak
+
+:: Open the default browser with localhost
+start http://localhost:3000
+
+echo Server started and browser opened!
