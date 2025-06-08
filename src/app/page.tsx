@@ -100,7 +100,7 @@ const AccordionSection = ({
   title, 
   children, 
   isOpen,
-  onToggle 
+  onToggle
 }: { 
   id: string; 
   title: string; 
@@ -109,11 +109,14 @@ const AccordionSection = ({
   onToggle: (id: string) => void;
 }) => {
   return (
-    <div className={`relative border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-500 overflow-hidden ${
-      isOpen 
-        ? 'bg-gradient-to-r from-green-50 to-blue-50' 
-        : 'bg-gradient-to-r from-blue-50 to-green-50 hover:from-blue-100 hover:to-green-100'
-    }`}>
+    <div 
+      className={`relative border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-500 overflow-hidden ${
+        isOpen 
+          ? 'bg-gradient-to-r from-green-50 to-blue-50' 
+          : 'bg-gradient-to-r from-blue-50 to-green-50 hover:from-blue-100 hover:to-green-100'
+      }`}
+      data-accordion-section={id}
+    >
       <button
         type="button"
         onClick={() => onToggle(id)}
@@ -225,19 +228,40 @@ export default function RegistrationPage() {
   const [toast, setToast] = useState<{ type: 'success' | 'error', title: string, message: string } | null>(null);
   const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set(['personalInfo']));
 
+  // Function to check which accordion sections contain invalid fields
+  const getAccordionsWithInvalidFields = (form: HTMLFormElement): Set<string> => {
+    const invalidFields = form.querySelectorAll(':invalid');
+    const accordionsWithInvalidFields = new Set<string>();
+    
+    invalidFields.forEach((field) => {
+      const accordionSection = field.closest('[data-accordion-section]');
+      if (accordionSection) {
+        accordionsWithInvalidFields.add(accordionSection.getAttribute('data-accordion-section') || '');
+      }
+    });
+    
+    return accordionsWithInvalidFields;
+  };
+
   // University options based on education level
   const universityOptions = {
     COLLEGE: ["SeoJeong", "Daewon", "Kunjang", "DIST", "SeoYeong", "Chungbuk", "Jangan", "Other"],
     MASTERS: [
       "Kangwon - E VISA", "SunMoon - E VISA", "Joon Bu - E VISA", "AnYang - E VISA",
       "SMIT - E VISA", "Woosuk - E VISA", "Dong eui E VISA", "Sejong", "Gachon", "BUFS",
-      "Won Kwan - E VISA", "Youngsan - E VISA"
+      "Won Kwan - E VISA (Sertifikatsiz)", "Youngsan - E VISA (Sertifikatsiz)"
     ],
     BACHELOR: [
-      "BUFS", "Chonnam National University", "Chung-Ang University", "Chungnam National University",
-      "DGIST", "Daegu University", "Ewha Womans University", "Gachon University", "Hankuk (HUFS)",
-      "Hanyang University", "Inha University", "KAIST", "Korea University", "Kyung Hee University",
-      "POSTECH", "Seoul National University (SNU)", "Sogang University", "Yonsei University", "Other"
+      "Busan University of Foreign Studies (BUFS)", "Chonnam National University", "Chung-Ang University", "Chungnam National University", 
+      "Daegu Gyeongbuk Institute of Science and Technology (DGIST)", "Daegu University", "Daejin University", "Dong-A University", 
+      "Dong-Eui University", "Ewha Womans University", "Far East University", "Gachon University", "Hankuk University of Foreign Studies", 
+      "Hanyang University", "Incheon National University", "Inha University", "Jeonbuk National University", 
+      "Kangwon National University", "Keimyung University", "Konkuk University", "Korea Advanced Institute of Science and Technology (KAIST)", 
+      "Korea University", "Kookmin University", "Kyung Hee University", "Kyungpook National University", 
+      "Pohang University of Science and Technology (POSTECH)", "Sejong University", "Seoul National University (SNU)", 
+      "Semyung University", "Sogang University", "SunMoon University", "Sungkyunkwan University (SKKU)", "Sungshin Women's University", 
+      "TongMyong University", "Ulsan National Institute of Science and Technology (UNIST)", "University of Seoul", "Yeungnam University", 
+      "Yonsei University", "Other"
     ]
   };
 
@@ -362,6 +386,16 @@ export default function RegistrationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for invalid fields and open their accordions
+    const form = e.target as HTMLFormElement;
+    if (!form.checkValidity()) {
+      const invalidAccordions = getAccordionsWithInvalidFields(form);
+      setOpenAccordions(invalidAccordions);
+      form.reportValidity();
+      return;
+    }
+
     setButtonState('loading');
 
     try {
@@ -443,7 +477,7 @@ export default function RegistrationPage() {
           <p className="text-lg text-gray-600 font-light">Please provide your information below</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           {/* Personal Information */}
           <AccordionSection 
             id="personalInfo" 
@@ -480,10 +514,11 @@ export default function RegistrationPage() {
                   <label className="block text-sm font-medium text-gray-900 mb-3">Middle Name</label>
                   <input
                     type="text"
+                    required
                     value={formData.middleName}
                     onChange={(e) => handleInputChange('middleName', e.target.value)}
                     className="w-full px-4 py-4 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 shadow-sm focus:shadow-md focus:ring-2 focus:ring-blue-500 focus:border-blue-300 focus:scale-[1.02] transition-all duration-300 hover:shadow-md hover:border-gray-300"
-                    placeholder="Middle name (optional)"
+                    placeholder="Middle name"
                   />
                 </div>
               </div>
@@ -528,6 +563,8 @@ export default function RegistrationPage() {
                     <option value="topikcenter">Topik Center</option>
                     <option value="seoul">Seoul Study</option>
                     <option value="umida">Umidaxon</option>
+                    <option value="ddlс">DDLC</option>
+                    <option value="aschool">ASCHOOL</option>
                     <option value="other">Other</option>
                   </select>
                 </div>

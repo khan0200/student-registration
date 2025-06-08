@@ -26,6 +26,7 @@ export default function StudentsPage() {
   const [filter, setFilter] = useState<'all' | 'COLLEGE' | 'BACHELOR' | 'MASTERS'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
   const studentsPerPage = 10;
 
   useEffect(() => {
@@ -87,19 +88,21 @@ export default function StudentsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'registered': return 'bg-green-100 text-green-800';
-      case 'approved': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Next semester': return 'bg-red-100 text-red-700 border-red-300';
+      case 'Elchixona': return 'bg-green-100 text-green-700 border-green-300';
+      case 'Visa': return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+      case 'Passed': return 'bg-magenta-100 text-magenta-700 border-magenta-300';
+      case 'Other': return 'bg-purple-100 text-purple-700 border-purple-300';
+      default: return 'bg-gray-100 text-gray-700 border-gray-300';
     }
   };
 
   // Filter and search students
   const filteredStudents = students.filter(student => {
     const matchesFilter = filter === 'all' || student.education_level === filter;
-    const matchesSearch = student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.student_id?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (student.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (student.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (student.student_id || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -117,6 +120,56 @@ export default function StudentsPage() {
     bachelor: students.filter(s => s.education_level === 'BACHELOR').length,
     masters: students.filter(s => s.education_level === 'MASTERS').length,
     pending: students.filter(s => s.status === 'pending').length,
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedStudents(currentStudents.map(student => student.id));
+    } else {
+      setSelectedStudents([]);
+    }
+  };
+
+  const handleSelectStudent = (studentId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedStudents([...selectedStudents, studentId]);
+    } else {
+      setSelectedStudents(selectedStudents.filter(id => id !== studentId));
+    }
+  };
+
+  const handleDownloadExcel = async () => {
+    if (selectedStudents.length === 0) {
+      alert('Please select at least one student to download');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/students/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ studentIds: selectedStudents }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download Excel file');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `students_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download Excel file. Please try again.');
+    }
   };
 
   // Pagination component
@@ -230,7 +283,7 @@ export default function StudentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-slate-50 to-blue-50 dark:from-gray-900 dark:via-slate-900/50 dark:to-blue-900/30 p-3 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         {/* Compact Header */}
         <div className="flex items-center justify-between mb-4">
@@ -291,56 +344,66 @@ export default function StudentsPage() {
           </div>
         </div>
 
-        {/* Compact Filters and Search */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 border border-gray-100 dark:border-gray-700 mb-4 transition-colors duration-300">
-          <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 text-sm ${
-                  filter === 'all' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setFilter('COLLEGE')}
-                className={`px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 text-sm ${
-                  filter === 'COLLEGE' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                College
-              </button>
-              <button
-                onClick={() => setFilter('BACHELOR')}
-                className={`px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 text-sm ${
-                  filter === 'BACHELOR' ? 'bg-green-600 dark:bg-green-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                Bachelor
-              </button>
-              <button
-                onClick={() => setFilter('MASTERS')}
-                className={`px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 text-sm ${
-                  filter === 'MASTERS' ? 'bg-purple-600 dark:bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                Masters
-              </button>
-            </div>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search students..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full md:w-64 px-3 py-1.5 pl-8 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all duration-200 text-sm"
-              />
-              <svg className="absolute left-2.5 top-2 h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
+        {/* Filter and Search Section */}
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                filter === 'all'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilter('COLLEGE')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                filter === 'COLLEGE'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              College
+            </button>
+            <button
+              onClick={() => setFilter('BACHELOR')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                filter === 'BACHELOR'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              Bachelor
+            </button>
+            <button
+              onClick={() => setFilter('MASTERS')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                filter === 'MASTERS'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              Masters
+            </button>
           </div>
+
+          {/* Download Excel Button */}
+          <button
+            onClick={handleDownloadExcel}
+            disabled={selectedStudents.length === 0}
+            className={`ml-auto px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 ${
+              selectedStudents.length > 0
+                ? 'bg-green-600 text-white hover:bg-green-700 shadow-md'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Excel ({selectedStudents.length})
+          </button>
         </div>
 
         {/* Error Message */}
@@ -350,134 +413,121 @@ export default function StudentsPage() {
           </div>
         )}
 
-        {/* Students List */}
-        {filteredStudents.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center border border-gray-100 dark:border-gray-700 transition-colors duration-300">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-xl mb-4">
-              <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              {searchTerm || filter !== 'all' ? 'No matching students found' : 'No Students Yet'}
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {searchTerm || filter !== 'all' 
-                ? 'Try adjusting your search or filter criteria.' 
-                : 'Be the first to register and join our community!'
-              }
-            </p>
-            <Link 
-              href="/" 
-              className="inline-flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors duration-200 text-sm"
-            >
-              Start Registration
-            </Link>
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden transition-colors duration-300">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700/50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
+        {/* Students Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden transition-colors duration-300">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents.length === currentStudents.length && currentStudents.length > 0}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      />
                       ID
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
-                      Full Name
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
-                      Phone
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
-                      Tariff
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
-                      Education Level
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
-                      Passport Number
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {currentStudents.map((student, index) => (
-                    <tr 
-                      key={student.student_id || `student-${student.id}-${index}`}
-                      onClick={() => window.location.href = `/students/${student.id}`}
-                      className={`hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200 cursor-pointer ${
-                        index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50'
-                      }`}
-                    >
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <div className="flex items-center">
+                    </div>
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
+                    Full Name
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
+                    Phone
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
+                    Tariff
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
+                    Education Level
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
+                    Passport Number
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-900 dark:text-gray-200 uppercase tracking-wider">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {currentStudents.map((student, index) => (
+                  <tr 
+                    key={student.student_id || `student-${student.id}-${index}`}
+                    className={`hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200 ${
+                      index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50'
+                    }`}
+                  >
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.includes(student.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleSelectStudent(student.id, e.target.checked);
+                          }}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        />
+                        <div 
+                          className="flex items-center cursor-pointer"
+                          onClick={() => window.location.href = `/students/${student.id}`}
+                        >
                           <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-xs mr-2">
-                            {student.full_name.charAt(0).toUpperCase()}
+                            {(student.full_name || '').charAt(0).toUpperCase()}
                           </div>
                           <span className="text-xs font-medium text-gray-900 dark:text-white">
                             {student.student_id || `#${student.id}`}
                           </span>
                         </div>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <div>
-                          <div className="text-xs font-medium text-gray-900 dark:text-white">
-                            {student.full_name}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-40" title={student.email}>
-                            {student.email}
-                          </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <div>
+                        <div className="text-xs font-medium text-gray-900 dark:text-white">
+                          {student.full_name}
                         </div>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <div className="text-xs text-gray-900 dark:text-white">
-                          {student.phone1 || 'N/A'}
-                          {student.phone2 && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {student.phone2}
-                            </div>
-                          )}
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-40" title={student.email}>
+                          {student.email}
                         </div>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getTariffColor(student.tariff)}`}>
-                          {student.tariff}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getEducationColor(student.education_level)}`}>
-                          {student.education_level}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <span className="text-xs font-mono text-gray-900 dark:text-white">
-                          {student.passport_number || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(student.status)}`}>
-                          {student.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            {/* Table Footer */}
-            <div className="bg-gray-50 dark:bg-gray-700/30 px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-end">
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Last updated: {new Date().toLocaleTimeString()}
-                </div>
-              </div>
-            </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <div className="text-xs text-gray-900 dark:text-white">
+                        {student.phone1 || 'N/A'}
+                        {student.phone2 && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {student.phone2}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getTariffColor(student.tariff)}`}>
+                        {student.tariff}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getEducationColor(student.education_level)}`}>
+                        {student.education_level}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <span className="text-xs font-mono text-gray-900 dark:text-white">
+                        {student.passport_number || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 rounded-lg text-xs font-semibold ${getStatusColor(student.status)}`}>
+                        {student.status || 'N/A'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
 
         {/* Pagination */}
         <Pagination />

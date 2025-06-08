@@ -43,6 +43,8 @@ export default function StudentDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<Toast | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isFullNameCopying, setIsFullNameCopying] = useState(false);
+  const [fullNameNotification, setFullNameNotification] = useState<string | null>(null);
 
   // University options based on education level
   const universityOptions = {
@@ -50,19 +52,50 @@ export default function StudentDetailPage() {
     MASTERS: [
       "Kangwon - E VISA", "SunMoon - E VISA", "Joon Bu - E VISA", "AnYang - E VISA",
       "SMIT - E VISA", "Woosuk - E VISA", "Dong eui E VISA", "Sejong", "Gachon", "BUFS",
-      "Won Kwan - E VISA", "Youngsan - E VISA"
+      "Won Kwan - E VISA (Sertifikatsiz)", "Youngsan - E VISA (Sertifikatsiz)"
     ],
     BACHELOR: [
-      "BUFS", "Chonnam National University", "Chung-Ang University", "Chungnam National University",
-      "DGIST", "Daegu University", "Ewha Womans University", "Gachon University", "Hankuk (HUFS)",
-      "Hanyang University", "Inha University", "KAIST", "Korea University", "Kyung Hee University",
-      "POSTECH", "Seoul National University (SNU)", "Sogang University", "Yonsei University", "Other"
+      "Busan University of Foreign Studies (BUFS)", "Chonnam National University", "Chung-Ang University", "Chungnam National University", 
+      "Daegu Gyeongbuk Institute of Science and Technology (DGIST)", "Daegu University", "Daejin University", "Dong-A University", 
+      "Dong-Eui University", "Ewha Womans University", "Far East University", "Gachon University", "Hankuk University of Foreign Studies", 
+      "Hanyang University", "Incheon National University", "Inha University", "Jeonbuk National University", 
+      "Kangwon National University", "Keimyung University", "Konkuk University", "Korea Advanced Institute of Science and Technology (KAIST)", 
+      "Korea University", "Kookmin University", "Kyung Hee University", "Kyungpook National University", 
+      "Pohang University of Science and Technology (POSTECH)", "Sejong University", "Seoul National University (SNU)", 
+      "Semyung University", "Sogang University", "SunMoon University", "Sungkyunkwan University (SKKU)", "Sungshin Women's University", 
+      "TongMyong University", "Ulsan National Institute of Science and Technology (UNIST)", "University of Seoul", "Yeungnam University", 
+      "Yonsei University", "Other"
     ]
   };
 
+  const languageCertificateOptions = [
+    { value: 'ielts-expected', label: 'IELTS Expected' },
+    { value: 'ielts-5.5', label: 'IELTS 5.5' },
+    { value: 'ielts-6.0', label: 'IELTS 6.0' },
+    { value: 'ielts-6.5', label: 'IELTS 6.5' },
+    { value: 'ielts-7.0', label: 'IELTS 7.0' },
+    { value: 'ielts-7.5', label: 'IELTS 7.5' },
+    { value: 'ielts-8.0', label: 'IELTS 8.0' },
+    { value: 'ielts-8.5', label: 'IELTS 8.5' },
+    { value: 'ielts-9.0', label: 'IELTS 9.0' },
+    { value: 'topik-2', label: 'TOPIK 2' },
+    { value: 'topik-3', label: 'TOPIK 3' },
+    { value: 'topik-4', label: 'TOPIK 4' },
+    { value: 'topik-5', label: 'TOPIK 5' },
+    { value: 'topik-6', label: 'TOPIK 6' },
+    { value: 'topik-expected', label: 'TOPIK Expected' },
+  ];
+
   // How did you hear about us options
   const hearAboutUsOptions = [
-    "Instagram", "Friends", "Topik Center", "Seoul Study", "Umidaxon", "Other"
+    { value: 'instagram', label: 'Instagram' },
+    { value: 'friend', label: 'Friends' },
+    { value: 'topikcenter', label: 'Topik Center' },
+    { value: 'seoul', label: 'Seoul Study' },
+    { value: 'umida', label: 'Umidaxon' },
+    { value: 'ddlс', label: 'DDLC' },
+    { value: 'aschool', label: 'ASCHOOL' },
+    { value: 'other', label: 'Other' },
   ];
 
   useEffect(() => {
@@ -234,6 +267,39 @@ export default function StudentDetailPage() {
     }
   };
 
+  const handleFullNameCopy = async () => {
+    if (!student?.full_name) return;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(student.full_name);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = student.full_name;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+        } catch (err) {
+          setFullNameNotification('Failed to copy');
+          return;
+        }
+        document.body.removeChild(textArea);
+      }
+      setIsFullNameCopying(true);
+      setFullNameNotification('Copied!');
+      setTimeout(() => {
+        setIsFullNameCopying(false);
+        setFullNameNotification(null);
+      }, 1200);
+    } catch (error) {
+      setFullNameNotification('Failed to copy');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-slate-50 to-blue-50 dark:from-gray-900 dark:via-slate-900/50 dark:to-blue-900/30 flex items-center justify-center transition-colors duration-300">
@@ -274,70 +340,14 @@ export default function StudentDetailPage() {
 
   const educationColors = getEducationLevelColors(student.education_level);
 
-  const DataField = ({ label, value = '', field }: { label: string; value?: string; field?: keyof Student }) => {
+  const DataField = ({ label, value = '', field, options }: { label: string; value?: string; field?: keyof Student; options?: { value: string; color: string }[] }) => {
     const [isFieldEditing, setIsFieldEditing] = useState(false);
     const [fieldValue, setFieldValue] = useState(value);
     const [isCopying, setIsCopying] = useState(false);
-    const [localNotification, setLocalNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-
-    const showLocalNotification = (type: 'success' | 'error', message: string) => {
-      setLocalNotification({ type, message });
-      setTimeout(() => setLocalNotification(null), 2000);
-    };
-
-    const getFieldSpecificColors = (fieldName: string, fieldValue: string) => {
-      if (fieldName === 'Tariff') {
-        return getTariffColors(fieldValue);
-      }
-      if (fieldName === 'Education Level') {
-        return getEducationLevelColors(fieldValue).badge;
-      }
-      if (fieldName === 'Status') {
-        return getStatusColors(fieldValue);
-      }
-      if (fieldName === 'Payment Status') {
-        return getPaymentStatusColors(fieldValue);
-      }
-      return '';
-    };
-
-    const fieldColors = getFieldSpecificColors(label, value);
-
-    const handleFieldSave = async () => {
-      if (!field || !student) return;
-
-      try {
-        const response = await fetch(`/api/students/${params.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ field, value: fieldValue }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          // Update local student state with the response from the server
-          setStudent(data.student);
-          setIsFieldEditing(false);
-          showLocalNotification('success', 'Updated successfully');
-        } else {
-          showLocalNotification('error', data.error || 'Failed to update');
-          setFieldValue(value); // Reset to original value
-        }
-      } catch (error) {
-        console.error('Update error:', error);
-        showLocalNotification('error', 'Network error');
-        setFieldValue(value); // Reset to original value
-      }
-    };
-
-    const handleFieldCancel = () => {
-      setFieldValue(value);
-      setIsFieldEditing(false);
-    };
+    const [localNotification, setLocalNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
     const handleCopy = async () => {
-      if (isFieldEditing || !value) return;
+      if (!value) return;
       
       try {
         // Try using the modern clipboard API first
@@ -367,13 +377,61 @@ export default function StudentDetailPage() {
         
         setIsCopying(true);
         showLocalNotification('success', 'Copied to clipboard');
-        
-        // Reset animation after 300ms
-        setTimeout(() => setIsCopying(false), 300);
+        setTimeout(() => {
+          setIsCopying(false);
+        }, 1000);
       } catch (error) {
         console.error('Copy error:', error);
         showLocalNotification('error', 'Failed to copy');
       }
+    };
+
+    const showLocalNotification = (type: 'success' | 'error', message: string) => {
+      setLocalNotification({ type, message });
+      setTimeout(() => setLocalNotification(null), 2000);
+    };
+
+    const handleFieldClick = () => {
+      if (field) {
+        setIsFieldEditing(true);
+      }
+    };
+
+    const handleFieldSave = async () => {
+      if (!field || !student) return;
+
+      try {
+        const response = await fetch(`/api/students/${params.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ field, value: fieldValue }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          setStudent(data.student);
+          setIsFieldEditing(false);
+          showLocalNotification('success', 'Updated successfully');
+        } else {
+          showLocalNotification('error', data.error || 'Failed to update');
+          setFieldValue(value);
+        }
+      } catch (error) {
+        console.error('Update error:', error);
+        showLocalNotification('error', 'Network error');
+        setFieldValue(value);
+      }
+    };
+
+    const handleFieldCancel = () => {
+      setFieldValue(value);
+      setIsFieldEditing(false);
+    };
+
+    const getStatusColor = (status: string) => {
+      const option = options?.find(opt => opt.value === status);
+      return option?.color || 'bg-gray-100 text-gray-700 border-gray-300';
     };
 
     return (
@@ -392,36 +450,34 @@ export default function StudentDetailPage() {
           </div>
         )}
         
-        <div className={`group flex items-center justify-between py-2 px-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 ${
-          !isFieldEditing ? 'cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/10 dark:hover:to-indigo-900/10' : ''
-        } ${isCopying ? 'scale-102 shadow-lg ring-2 ring-blue-500/20 border-blue-400' : ''}`}
-        onClick={!isFieldEditing ? handleCopy : undefined}>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-400 uppercase tracking-wide flex items-center">
-                <div className="w-1.5 h-1.5 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-full mr-1.5"></div>
-                {label}
-              </label>
-              {!isFieldEditing && field && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent copy when clicking edit
-                    setFieldValue(value);
-                    setIsFieldEditing(true);
-                  }}
-                  className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all duration-200 opacity-60 group-hover:opacity-100"
-                  title={`Edit ${label}`}
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-              )}
-            </div>
-            
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+            {label}
+          </label>
+          <div 
+            onClick={handleCopy}
+            className={`relative p-2 rounded-lg border ${
+              field ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50' : ''
+            } ${options ? getStatusColor(value) : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'} ${
+              isCopying ? 'scale-102 shadow-lg ring-2 ring-blue-500/20 border-blue-400' : ''
+            }`}
+          >
             {isFieldEditing && field ? (
               <div className="flex items-center gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
-                {field === 'additional_notes' || field === 'address' ? (
+                {options ? (
+                  <select
+                    value={fieldValue}
+                    onChange={(e) => setFieldValue(e.target.value)}
+                    className="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    autoFocus
+                  >
+                    {options.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.value}
+                      </option>
+                    ))}
+                  </select>
+                ) : field === 'additional_notes' || field === 'address' ? (
                   <textarea
                     value={fieldValue}
                     onChange={(e) => setFieldValue(e.target.value)}
@@ -440,136 +496,58 @@ export default function StudentDetailPage() {
                     <option value="BACHELOR">BACHELOR</option>
                     <option value="MASTERS">MASTERS</option>
                   </select>
-                ) : field === 'tariff' ? (
-                  <select
-                    value={fieldValue}
-                    onChange={(e) => setFieldValue(e.target.value)}
-                    className="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    autoFocus
-                  >
-                    <option value="STANDART">STANDART</option>
-                    <option value="PREMIUM">PREMIUM</option>
-                    <option value="VISA PLUS">VISA PLUS</option>
-                    <option value="1FOIZ">1FOIZ</option>
-                  </select>
-                ) : field === 'status' ? (
-                  <select
-                    value={fieldValue}
-                    onChange={(e) => setFieldValue(e.target.value)}
-                    className="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    autoFocus
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="registered">Registered</option>
-                    <option value="approved">Approved</option>
-                  </select>
-                ) : field === 'payment_status' ? (
-                  <select
-                    value={fieldValue}
-                    onChange={(e) => setFieldValue(e.target.value)}
-                    className="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    autoFocus
-                  >
-                    <option value="UNPAID">UNPAID</option>
-                    <option value="FULL">FULL</option>
-                    <option value="25%">25%</option>
-                    <option value="45%">45%</option>
-                    <option value="50%">50%</option>
-                    <option value="75%">75%</option>
-                  </select>
-                ) : field === 'university1' || field === 'university2' ? (
-                  <select
-                    value={fieldValue}
-                    onChange={(e) => setFieldValue(e.target.value)}
-                    className="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    autoFocus
-                  >
-                    <option value="">Select university</option>
-                    {student && universityOptions[student.education_level as keyof typeof universityOptions]?.map(uni => (
-                      <option key={uni} value={uni}>{uni}</option>
-                    ))}
-                  </select>
-                ) : field === 'hear_about_us' ? (
-                  <select
-                    value={fieldValue}
-                    onChange={(e) => setFieldValue(e.target.value)}
-                    className="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    autoFocus
-                  >
-                    <option value="">Select an option</option>
-                    {hearAboutUsOptions.map(option => (
-                      <option key={option.toLowerCase()} value={option.toUpperCase()}>{option}</option>
-                    ))}
-                  </select>
-                ) : field === 'language_certificate' ? (
-                  <select
-                    value={fieldValue}
-                    onChange={(e) => setFieldValue(e.target.value)}
-                    className="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    autoFocus
-                  >
-                    <option value="">Select certificate</option>
-                    <option value="IELTS EXPECTED">IELTS EXPECTED</option>
-                    <option value="IELTS 5.5">IELTS 5.5</option>
-                    <option value="IELTS 6.0">IELTS 6.0</option>
-                    <option value="IELTS 6.5">IELTS 6.5</option>
-                    <option value="IELTS 7.0">IELTS 7.0</option>
-                    <option value="IELTS 7.5">IELTS 7.5</option>
-                    <option value="IELTS 8.0">IELTS 8.0</option>
-                    <option value="IELTS 8.5">IELTS 8.5</option>
-                    <option value="IELTS 9.0">IELTS 9.0</option>
-                    <option value="TOPIK 2">TOPIK 2</option>
-                    <option value="TOPIK 3">TOPIK 3</option>
-                    <option value="TOPIK 4">TOPIK 4</option>
-                    <option value="TOPIK 5">TOPIK 5</option>
-                    <option value="TOPIK 6">TOPIK 6</option>
-                    <option value="TOPIK EXPECTED">TOPIK EXPECTED</option>
-                  </select>
                 ) : (
                   <input
-                    type={field === 'email' ? 'email' : field === 'birth_date' ? 'date' : 'text'}
+                    type="text"
                     value={fieldValue}
                     onChange={(e) => setFieldValue(e.target.value)}
                     className="flex-1 p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     autoFocus
                   />
                 )}
-                <button
-                  onClick={handleFieldSave}
-                  className="p-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-sm hover:shadow-md"
-                  title="Save"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleFieldCancel}
-                  className="p-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-sm hover:shadow-md"
-                  title="Cancel"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleFieldSave}
+                    className="p-1.5 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors duration-200"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleFieldCancel}
+                    className="p-1.5 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors duration-200"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className={`text-sm font-medium text-gray-900 dark:text-white transition-all duration-200 ${
-                isCopying ? 'text-blue-600 dark:text-blue-400' : ''
-              }`}>
-                {fieldColors ? (
-                  <span className={`inline-flex px-2 py-1 rounded-lg text-xs font-semibold ${fieldColors} shadow-sm`}>
-                    {value || 'N/A'}
-                  </span>
-                ) : (
-                  <>
-                    {value || 'N/A'}
-                    {!isFieldEditing && value && (
-                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        📋 Copy
-                      </span>
-                    )}
-                  </>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-900 dark:text-white group">
+                  {value || '-'}
+                  {value && (
+                    <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      📋 Copy
+                    </span>
+                  )}
+                </div>
+                {!isFieldEditing && field && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFieldValue(value);
+                      setIsFieldEditing(true);
+                    }}
+                    className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all duration-200 opacity-60 hover:opacity-100"
+                    title={`Edit ${label}`}
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
                 )}
               </div>
             )}
@@ -649,9 +627,18 @@ export default function StudentDetailPage() {
                 {student.full_name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                <div
+                  className={`text-2xl md:text-3xl font-bold text-gray-900 dark:text-white cursor-pointer group transition-transform ${isFullNameCopying ? 'scale-105 ring-2 ring-blue-400' : ''}`}
+                  title="Click to copy full name"
+                  onClick={handleFullNameCopy}
+                  style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}
+                >
                   {student.full_name}
-                </h1>
+                  <span className="ml-2 text-base text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200">📋</span>
+                </div>
+                {fullNameNotification && (
+                  <div className="mt-1 text-xs text-green-600 dark:text-green-400 animate-fade-in">{fullNameNotification}</div>
+                )}
                 <div className="flex items-center gap-2">
                   <p className="text-base text-gray-500 dark:text-gray-400 font-medium">
                     {student.student_id}
@@ -732,11 +719,27 @@ export default function StudentDetailPage() {
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3">
-              <DataField label="Education Level" value={student.education_level} field="education_level" />
-              <DataField label="Language Certificate" value={student.language_certificate} field="language_certificate" />
-              <DataField label="University 1" value={student.university1} field="university1" />
-              <DataField label="University 2" value={student.university2} field="university2" />
-              <DataField label="How did you hear about us?" value={student.hear_about_us} field="hear_about_us" />
+              <DataField label="Education Level" value={student.education_level} field="education_level" options={[
+                { value: 'COLLEGE', color: '' },
+                { value: 'BACHELOR', color: '' },
+                { value: 'MASTERS', color: '' },
+              ]} />
+              <DataField label="Language Certificate" value={student.language_certificate} field="language_certificate" options={languageCertificateOptions.map(opt => ({ value: opt.label, color: '' }))} />
+              <DataField label="University 1" value={student.university1} field="university1" options={universityOptions[student.education_level as keyof typeof universityOptions]?.map(u => ({ value: u, color: '' })) ?? []} />
+              <DataField label="University 2" value={student.university2} field="university2" options={universityOptions[student.education_level as keyof typeof universityOptions]?.map(u => ({ value: u, color: '' })) ?? []} />
+              <DataField label="How did you hear about us?" value={student.hear_about_us} field="hear_about_us" options={hearAboutUsOptions.map(opt => ({ value: opt.label, color: '' }))} />
+              <DataField 
+                label="Status" 
+                value={student.status} 
+                field="status"
+                options={[
+                  { value: 'Next semester', color: 'bg-red-100 text-red-700 border-red-300' },
+                  { value: 'Elchixona', color: 'bg-green-100 text-green-700 border-green-300' },
+                  { value: 'Visa', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+                  { value: 'Passed', color: 'bg-magenta-100 text-magenta-700 border-magenta-300' },
+                  { value: 'Other', color: 'bg-purple-100 text-purple-700 border-purple-300' }
+                ]}
+              />
             </div>
           </div>
 

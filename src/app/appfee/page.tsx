@@ -54,13 +54,19 @@ export default function AppFeePage() {
     MASTERS: [
       "Kangwon - E VISA", "SunMoon - E VISA", "Joon Bu - E VISA", "AnYang - E VISA",
       "SMIT - E VISA", "Woosuk - E VISA", "Dong eui E VISA", "Sejong", "Gachon", "BUFS",
-      "Won Kwan - E VISA", "Youngsan - E VISA"
+      "Won Kwan - E VISA (Sertifikatsiz)", "Youngsan - E VISA (Sertifikatsiz)"
     ],
     BACHELOR: [
-      "BUFS", "Chonnam National University", "Chung-Ang University", "Chungnam National University",
-      "DGIST", "Daegu University", "Ewha Womans University", "Gachon University", "Hankuk (HUFS)",
-      "Hanyang University", "Inha University", "KAIST", "Korea University", "Kyung Hee University",
-      "POSTECH", "Seoul National University (SNU)", "Sogang University", "Yonsei University", "Other"
+      "Busan University of Foreign Studies (BUFS)", "Chonnam National University", "Chung-Ang University", "Chungnam National University", 
+      "Daegu Gyeongbuk Institute of Science and Technology (DGIST)", "Daegu University", "Daejin University", "Dong-A University", 
+      "Dong-Eui University", "Ewha Womans University", "Far East University", "Gachon University", "Hankuk University of Foreign Studies", 
+      "Hanyang University", "Incheon National University", "Inha University", "Jeonbuk National University", 
+      "Kangwon National University", "Keimyung University", "Konkuk University", "Korea Advanced Institute of Science and Technology (KAIST)", 
+      "Korea University", "Kookmin University", "Kyung Hee University", "Kyungpook National University", 
+      "Pohang University of Science and Technology (POSTECH)", "Sejong University", "Seoul National University (SNU)", 
+      "Semyung University", "Sogang University", "SunMoon University", "Sungkyunkwan University (SKKU)", "Sungshin Women's University", 
+      "TongMyong University", "Ulsan National Institute of Science and Technology (UNIST)", "University of Seoul", "Yeungnam University", 
+      "Yonsei University", "Other"
     ]
   };
 
